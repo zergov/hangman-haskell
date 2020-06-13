@@ -1,7 +1,8 @@
 import System.Random
 import Data.List
 
-data GameState = GameState { gameWord :: String }  deriving (Show)
+data GameState = GameState { gameWord :: String
+                           , playerGuess :: String }  deriving (Show)
 
 wordList :: [String]
 wordList = [ "donkey"
@@ -24,7 +25,20 @@ randomWord = do
     return (wordList !! wordIndex)
 
 initializeGame :: String -> GameState
-initializeGame word = GameState { gameWord = word }
+initializeGame word = GameState { gameWord = word
+                                , playerGuess = map (\_ -> '_') word }
+
+-- cannot reuse this game after assigning it in ghci :/
+updateGame :: GameState -> Char -> GameState
+updateGame game guess = game { playerGuess = newGuess }
+    where newGuess = uncoverLetter (gameWord game) (playerGuess game) guess
+
+uncoverLetter :: String -> String -> Char -> String
+uncoverLetter word guess c = map f pairs
+    where pairs = zip word guess
+          f (wc, gc)
+            | gc == '_' && wc == c = wc
+            | otherwise = '_'
 
 main :: IO ()
 main = do
