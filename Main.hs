@@ -3,7 +3,8 @@ import Data.List
 import Control.Monad.Loops
 
 data GameState = GameState { gameWord :: String
-                           , playerGuess :: String }  deriving (Show)
+                           , playerGuess :: String
+                           , attempt :: Int }  deriving (Show)
 
 wordList :: [String]
 wordList = [ "donkey"
@@ -27,10 +28,12 @@ randomWord = do
 
 initializeGame :: String -> GameState
 initializeGame word = GameState { gameWord = word
-                                , playerGuess = map (\_ -> '_') word }
+                                , playerGuess = map (\_ -> '_') word
+                                , attempt = 0 }
 
 updateGame :: GameState -> Char -> GameState
-updateGame game guess = game { playerGuess = newGuess }
+updateGame game guess = game { playerGuess = newGuess
+                             , attempt = (attempt game) + 1 }
     where newGuess = uncoverLetters (gameWord game) (playerGuess game) guess
 
 gameOver :: GameState -> Bool
@@ -51,6 +54,21 @@ gameLoop g = do
     guess <- getLine
     return $ updateGame g (head guess)
 
+endGameMessage :: GameState -> String
+endGameMessage g
+  | attempts < 10 = "You got " ++ word ++ " in " ++ (show attempts) ++ " attempts! You're a fucking 200iq genius!"
+  | attempts >= 10 && attempts <= 20  = "GG! You managed to find the word: " ++ word ++ " in " ++ (show attempts) ++ " attempts!"
+  | attempts > 20  = "lol, you found " ++ word ++ " in " ++ (show attempts) ++ " tries... pepega you are."
+    where attempts = attempt g
+          word = gameWord g
+
+endGameScreen :: GameState -> IO ()
+endGameScreen game = do
+    putStrLn "===================================="
+    putStrLn $ endGameMessage game
+    putStrLn ""
+    putStrLn "Bye bye now."
+
 main :: IO ()
 main = do
     word <- randomWord
@@ -58,5 +76,4 @@ main = do
 
     putStrLn $ " ** Your word has " ++ (show . length . gameWord $ game) ++ " characters **"
     endGame <- iterateUntilM gameOver gameLoop game
-
-    putStrLn $ show endGame
+    endGameScreen endGame
