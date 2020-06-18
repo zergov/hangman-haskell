@@ -1,5 +1,6 @@
 import System.Random
 import Data.List
+import Control.Monad.Loops
 
 data GameState = GameState { gameWord :: String
                            , playerGuess :: String }  deriving (Show)
@@ -28,20 +29,34 @@ initializeGame :: String -> GameState
 initializeGame word = GameState { gameWord = word
                                 , playerGuess = map (\_ -> '_') word }
 
--- cannot reuse this game after assigning it in ghci :/
 updateGame :: GameState -> Char -> GameState
 updateGame game guess = game { playerGuess = newGuess }
-    where newGuess = uncoverLetter (gameWord game) (playerGuess game) guess
+    where newGuess = uncoverLetters (gameWord game) (playerGuess game) guess
 
-uncoverLetter :: String -> String -> Char -> String
-uncoverLetter word guess c = map f pairs
+gameOver :: GameState -> Bool
+gameOver g = (gameWord g) == (playerGuess g)
+
+uncoverLetters :: String -> String -> Char -> String
+uncoverLetters word guess c = map f pairs
     where pairs = zip word guess
           f (wc, gc)
             | gc == '_' && wc == c = wc
-            | otherwise = '_'
+            | otherwise = gc
+
+gameLoop :: GameState -> IO GameState
+gameLoop g = do
+    putStrLn  "==========================================="
+    putStrLn $ "word: " ++ playerGuess g
+    putStrLn "Guess a character: "
+    guess <- getLine
+    return $ updateGame g (head guess)
 
 main :: IO ()
 main = do
     word <- randomWord
     let game = initializeGame word
-    putStrLn $ show game
+
+    putStrLn $ " ** Your word has " ++ (show . length . gameWord $ game) ++ " characters **"
+    endGame <- iterateUntilM gameOver gameLoop game
+
+    putStrLn $ show endGame
